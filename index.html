@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Slow Demo App</title>
+  <title>Slow Demo App - Optimized</title>
+  
+  <!-- Preconnect to external origins for faster loading -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  
+  <!-- Inline critical CSS for faster FCP -->
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -12,25 +17,46 @@
       background: #f4f6f8;
       color: #222;
     }
-    h1 { margin-top: 0; }
+    h1 { 
+      margin-top: 0;
+      /* Prevent CLS by reserving space */
+      min-height: 40px;
+    }
     #status {
       padding: 12px 16px;
-      background: #fff3cd;
-      border: 1px solid #ffeeba;
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
       border-radius: 6px;
       margin-bottom: 16px;
+      /* Prevent CLS */
+      min-height: 20px;
     }
-    #app { display: none; }
-    .controls { margin-bottom: 16px; }
+    #app { 
+      display: none;
+      /* Prevent CLS when showing */
+      min-height: 400px;
+    }
+    .controls { 
+      margin-bottom: 16px;
+      /* Prevent CLS */
+      min-height: 40px;
+    }
     button {
       padding: 8px 14px;
       margin-right: 8px;
+      margin-bottom: 8px;
       border: 1px solid #888;
       background: #fff;
       border-radius: 4px;
       cursor: pointer;
+      /* Improve perceived performance */
+      transition: background-color 0.15s ease;
     }
     button:hover { background: #eee; }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
     #list {
       max-height: 320px;
       overflow: auto;
@@ -38,12 +64,18 @@
       padding: 8px;
       border: 1px solid #ddd;
       border-radius: 6px;
+      /* Use GPU acceleration for scrolling */
+      will-change: scroll-position;
+      /* Prevent CLS */
+      min-height: 320px;
     }
     .row {
       padding: 6px 8px;
       border-bottom: 1px solid #eee;
       font-family: monospace;
       font-size: 13px;
+      /* Enable GPU compositing for better performance */
+      contain: layout style paint;
     }
     #box {
       width: 60px;
@@ -51,24 +83,38 @@
       background: #4a90e2;
       margin-top: 12px;
       border-radius: 6px;
+      /* Enable GPU acceleration */
+      will-change: transform;
+      /* Prevent CLS */
+      min-width: 60px;
+      min-height: 60px;
     }
   </style>
 </head>
 <body>
-  <h1>Slow Demo App</h1>
-  <div id="status">Loading… please wait ~10 seconds.</div>
+  <h1>Slow Demo App - Optimized ⚡</h1>
+  <div id="status">Loading…</div>
 
   <div id="app">
     <div class="controls">
-      <button id="btn-long-task">Run Long Task (blocks UI)</button>
-      <button id="btn-leak">Start Memory Leak</button>
-      <button id="btn-thrash">Layout Thrash</button>
-      <button id="btn-render-big">Render 50k Rows</button>
+      <button id="btn-long-task">Run Long Task (chunked, non-blocking)</button>
+      <button id="btn-leak">Start Memory Allocation (limited)</button>
+      <button id="btn-thrash">Smooth Animation (no thrashing)</button>
+      <button id="btn-render-big">Render 50k Rows (optimized)</button>
     </div>
     <div id="box"></div>
     <div id="list"></div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- Defer non-critical JavaScript -->
+  <script src="app.js" defer></script>
+  
+  <!-- Optionally add Web Vitals reporting -->
+  <script>
+    // Report Core Web Vitals to console (can be sent to New Relic)
+    if ('PerformanceObserver' in window) {
+      // This is handled in app.js
+    }
+  </script>
 </body>
 </html>
