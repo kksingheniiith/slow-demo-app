@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
@@ -14,6 +15,18 @@ const MIME = {
   '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
+};
+
+// Cache durations (in seconds)
+const CACHE_MAX_AGE = {
+  '.html': 300,        // 5 minutes for HTML
+  '.js': 31536000,     // 1 year for JS (use versioning)
+  '.css': 31536000,    // 1 year for CSS (use versioning)
+  '.json': 300,        // 5 minutes for JSON
+  '.png': 2592000,     // 30 days for images
+  '.jpg': 2592000,
+  '.svg': 2592000,
+  '.ico': 2592000,
 };
 
 const server = http.createServer((req, res) => {
@@ -31,12 +44,44 @@ const server = http.createServer((req, res) => {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       return res.end('Not found');
     }
+    
     const ext = path.extname(filePath).toLowerCase();
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
-    fs.createReadStream(filePath).pipe(res);
+    const contentType = MIME[ext] || 'application/octet-stream';
+    
+    // Check if client supports gzip compression
+    const acceptEncoding = req.headers['accept-encoding'] || '';
+    const supportsGzip = acceptEncoding.includes('gzip');
+    
+    // Determine if we should compress (text-based files)
+    const shouldCompress = supportsGzip && 
+      (ext === '.html' || ext === '.js' || ext === '.css' || ext === '.json' || ext === '.svg');
+    
+    // Set headers
+    const headers = {
+      'Content-Type': contentType,
+      'Cache-Control': `public, max-age=${CACHE_MAX_AGE[ext] || 300}`,
+      'ETag': `"${stat.size}-${stat.mtime.getTime()}"`,
+    };
+    
+    // Check ETag for 304 Not Modified
+    const clientETag = req.headers['if-none-match'];
+    if (clientETag === headers['ETag']) {
+      res.writeHead(304);
+      return res.end();
+    }
+    
+    if (shouldCompress) {
+      headers['Content-Encoding'] = 'gzip';
+      res.writeHead(200, headers);
+      fs.createReadStream(filePath).pipe(zlib.createGzip()).pipe(res);
+    } else {
+      res.writeHead(200, headers);
+      fs.createReadStream(filePath).pipe(res);
+    }
   });
 });
 
 server.listen(PORT, () => {
-  console.log(`Listening on http://0.0.0.0:${PORT}`);
+  console.log(`✅ Optimized server listening on http://0.0.0.0:${PORT}`);
+  console.log(`📊 Features enabled: gzip compression, caching headers, ETags`);
 });
